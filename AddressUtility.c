@@ -1,5 +1,5 @@
 // A printer and equality checker for sockets sent in
-#include "caseConverter.h"
+#include "starLord.h"
 
 // print the address of a socket to a file stream
 void PrintSocketAddress(const struct sockaddr *address, FILE *stream) {

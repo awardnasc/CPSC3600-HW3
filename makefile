@@ -1,21 +1,20 @@
-all: caseConverter bellower frank 
+all: starLord chopper ahsoka
 
 CC=gcc
 CFLAGS=-I. -std=gnu99
-DEPS = caseConverter.h
 
-%.o: %.c $(DEPS)
-	$(CC) -c -o  $@ $< $(CFLAGS)
+DEPS = starLord.c AddressUtility.c
+starLord: starLord.c AddressUtility.c
+	$(CC) $(CFLAGS) $(DEPS) -o starLord
 
-caseConverter: caseConverter.c AddressUtility.c
-	gcc -o caseConverter -std=gnu99 caseConverter.c AddressUtility.c -I.
+DEPS = chopper.c AddressUtility.c
+chopper: chopper.c AddressUtility.c
+	$(CC) $(CFLAGS) $(DEPS) -o chopper
 
-bellower: bellower.c AddressUtility.c
-	gcc -o bellower -std=gnu99 bellower.c AddressUtility.c -I.
-
-frank: frank.c AddressUtility.c
-	gcc -o frank -std=gnu99 frank.c AddressUtility.c -I.
+DEPS = ahsoka.c AddressUtility.c
+ahsoka: ahsoka.c AddressUtility.c
+	$(CC) $(CFLAGS) $(DEPS) -o ahsoka
 
 clean:
-	rm -f frank bellower caseConverter
+	rm -f starLord chopper ahsoka
 
