@@ -1,29 +1,78 @@
-// frank.c -- verifies whether the server, caseConverter, performs its desired
-// task of inverting the case of the letters of a message it receives from a 
-// network client. frank does this by sending a message to caseConverter,
-// receiving the modified message, and then sending the modified message back
-// and comparing the ultimate response with the original message. if it is the
-// same as the original message, the server is "verified" and this program
-// terminates displaying an appropriate message to the user.
 #include "starLord.h"
+#include <string.h>
+#define NUM_MSGS 15
 
 int main(int argc, char *argv[]) {
 
 	// Ensure that user ran with correct syntax and # of arguments. If not, exit
-	if (argc != 7) {
-		printf("Syntax: ./frank -s <server address> -p <port> -m <message>\n");
+	if (argc < 9) {
+		printf("Syntax: ./ahsoka -s <server addr> -p <port> -h <hostHeader> ");
+		printf("-a1 <message1>...-aN <messageN>\n");
 		exit(1);
 	}
 
 	// Declare variables
-	char *servIP;		// server IP address 
-	char *servPort;	// server port number
-	char *message;		// message to send to server
+	char *servIP;					// server IP address 
+	char *servPort;				// server port number
+	char *hostHeader; 			// host header
+	char *messages[NUM_MSGS];	// array of messages to send to server
+	int msgsParsed = 0;			// number of msgs parsed so far from cmnd line
+	
+	// initialize messages array with NUM_MSGS strings of 80 chars each
+	int i;
+	for (i=0; i<NUM_MSGS; i++) 
+		messages[i] = (char *)malloc(80 * sizeof(char));
 
+	// Parse command line arguments with flags and initialize variables
+	int j=1;
+	while (j < argc) {
+		switch (argv[j][1]) {
+			case 's':
+				servIP = argv[j+1];
+				printf("got s, servIP is %s\n", servIP);
+				break;
+			case 'p':
+				servPort = argv[j+1];
+				printf("got p, servPort is %s\n", servPort);
+				break;
+			case 'h':
+				hostHeader = argv[j+1];
+				printf("got h, hostHeader is %s\n", hostHeader);
+				break;
+			case 'a':
+				if (((int)argv[j][2]-48) != (msgsParsed+1)) {
+					printf("\n\nERROR with message flag -a%c!\n", (char)argv[j][2]);
+					printf("messages must be sent on command line corresponding to");
+					printf(" -aX flags,\nwhere X is an integer. the messages must");
+					printf(" be sent in order that they wish\nto be sent; thus ");
+					printf("the -aX flags must occur in ascending order, starting ");
+					printf("with -a1.\nTry again.\n\n");
+				}
+				else {
+					messages[msgsParsed++] = argv[j+1];
+					printf("got a%c, message%c is %s\n", (char)argv[j][2], (char)argv[j][2], messages[msgsParsed-1]);
+				}
+				break;
+			default:
+				if (argv[j][0] != '-') {
+					printf("Syntax: ./ahsoka -s <server addr> -p <port> ");
+					printf("-h <hostHeader> -a <message1>...-aN <messageN>\n");
+				}
+				else {
+					printf("only acceptable flags are -s, -p, -h, and -aX, ");
+					printf("where X is an integer greater than 1.\n");
+				}
+				break;
+		}
+		j+=2;
+	}
+
+
+	/*
 	// Parse command line arguments with flags and initialize variables
 	int c;
 	opterr = 0;
-	while ((c = getopt(argc, argv, "s:p:m:")) != -1) {
+	while ((c = getopt(argc, argv, "s:p:h:a:")) != -1) {
 		switch (c) {
 			case 's':
 				servIP = optarg;
@@ -31,13 +80,16 @@ int main(int argc, char *argv[]) {
 			case 'p':
 				servPort = optarg;
 				break;
-			case 'm':
-				message = optarg;
+			case 'h':
+				hostHeader = optarg;
+				break;
+			case 'a':
+				// THIS WORKS!
+				printf("got flag -a");
+				printf("number that came after a was %s", optarg);
 				break;
 			case '?':
-				if (optopt == 'c')
-					fprintf (stderr, "Option -%c needs an argument.\n", optopt);
-				else if (isprint (optopt))
+				if (isprint (optopt))
 					fprintf (stderr, "Unknown option `-%c'.\n", optopt);
 				else
 					fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
@@ -46,7 +98,9 @@ int main(int argc, char *argv[]) {
 				abort ();
 		}
 	}
+*/
 
+/*
 	// Tell the system what kind of address info we want
 	struct addrinfo addrCriteria;
 	memset(&addrCriteria, 0, sizeof(addrCriteria));
@@ -194,6 +248,7 @@ int main(int argc, char *argv[]) {
 	// Close socket and free addrinfo allocated in getaddrinfo()
 	close(sock);
 	freeaddrinfo(servAddr);
+*/
 	return 0;
 }
 

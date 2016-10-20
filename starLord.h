@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <time.h>
+#include <regex.h>
 
 // Test socket address equality
 bool SockAddrsEqual(const struct sockaddr *addr1, const struct sockaddr *addr2);

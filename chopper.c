@@ -1,25 +1,26 @@
-// bellower.c -- sends a string provided as a parameter at the command line 
-// to a networked server. it waits for a response from the server and displays 
-// the entire message received.
 #include "starLord.h"
 
 int main(int argc, char *argv[]) {
 
 	// Ensure that user ran with correct syntax and # of arguments. If not, exit
-	if (argc != 7) {
-		printf("Syntax: ./bellower -s <server address> -p <port> -m <message>\n");
+	if (argc < 8 || argc > 10) {
+		printf("Syntax: ./chopper -s <server addr> -p <port> -h <hostHeader>\n");
+		printf("[-a <message>] and/or [-v] should also be included, \n");
+		printf("depending on which mode you want to use.\n");
 		exit(1);
 	}
 
 	// Declare variables
-	char *servIP;     // server IP address
-	char *servPort;	// server port number
-	char *message;		// message to send to server
+	char *servIP;  	   	// server IP address
+	char *servPort;			// server port number
+	char *hostHeader; 		// host header
+	char *message;				// message to send to server
+	bool viewMode = false;	// will be true if -v flag is sent
 
 	// Parse command line arguments with flags and initialize variables
 	int c;
 	opterr = 0;
-	while ((c = getopt(argc, argv, "s:p:m:")) != -1) {
+	while ((c = getopt(argc, argv, "s:p:h:a:v")) != -1) {
 		switch (c) {
 			case 's':
 				servIP = optarg;
@@ -27,13 +28,17 @@ int main(int argc, char *argv[]) {
 			case 'p':
 				servPort = optarg;
 				break;
-			case 'm':
+			case 'h':
+				hostHeader = optarg;
+				break;
+			case 'a':
 				message = optarg;
 				break;
+			case 'v':
+				viewMode = true;
+				break;
 			case '?':
-				if (optopt == 'c')
-					fprintf (stderr, "Option -%c needs an argument.\n", optopt);
-				else if (isprint (optopt))
+				if (isprint (optopt))
 					fprintf (stderr, "Unknown option `-%c'.\n", optopt);
 				else
 					fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);

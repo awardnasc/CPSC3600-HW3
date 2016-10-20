@@ -2,19 +2,18 @@ all: starLord chopper ahsoka
 
 CC=gcc
 CFLAGS=-I. -std=gnu99
+starLordDEPS = starLord.c AddressUtility.c
+chopperDEPS = chopper.c AddressUtility.c
+ahsokaDEPS = ahsoka.c AddressUtility.c
 
-DEPS = starLord.c AddressUtility.c
-starLord: starLord.c AddressUtility.c
-	$(CC) $(CFLAGS) $(DEPS) -o starLord
+starLord: $(starLordDEPS)
+	$(CC) $(CFLAGS) $(starLordDEPS) -o starLord
 
-DEPS = chopper.c AddressUtility.c
-chopper: chopper.c AddressUtility.c
-	$(CC) $(CFLAGS) $(DEPS) -o chopper
+chopper: $(chopperDEPS) 
+	$(CC) $(CFLAGS) $(chopperDEPS) -o chopper
 
-DEPS = ahsoka.c AddressUtility.c
-ahsoka: ahsoka.c AddressUtility.c
-	$(CC) $(CFLAGS) $(DEPS) -o ahsoka
+ahsoka: $(ahsokaDEPS) 
+	$(CC) $(CFLAGS) $(ahsokaDEPS) -o ahsoka
 
 clean:
 	rm -f starLord chopper ahsoka
-
