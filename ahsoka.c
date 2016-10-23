@@ -95,38 +95,6 @@ int main(int argc, char *argv[]) {
 	}
 	printf("\n");
 
-	/*
-	// Parse command line arguments with flags and initialize variables
-	int c;
-	opterr = 0;
-	while ((c = getopt(argc, argv, "s:p:h:a:")) != -1) {
-		switch (c) {
-			case 's':
-				servIP = optarg;
-				break;
-			case 'p':
-				servPort = optarg;
-				break;
-			case 'h':
-				hostHeader = optarg;
-				break;
-			case 'a':
-				// THIS WORKS!
-				printf("got flag -a");
-				printf("number that came after a was %s", optarg);
-				break;
-			case '?':
-				if (isprint (optopt))
-					fprintf (stderr, "Unknown option `-%c'.\n", optopt);
-				else
-					fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
-				return 1;
-			default:
-				abort ();
-		}
-	}
-*/
-
 /*
 	// Tell the system what kind of address info we want
 	struct addrinfo addrCriteria;

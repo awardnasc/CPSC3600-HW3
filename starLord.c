@@ -1,23 +1,41 @@
-// caseConverter.c -- this server receives a string from a client and inverts
-// all lowercase characters to uppercase, and uppercase characters to lowercase
-// for the characters where this can be done. all other characters are to
-// remain unchanged. caseConverter then sends the inverted message back to the
-// client. caseConverter runs forever until CTRL+C'd. when this happens,
-// the number of messages received and a list of IP addresses of unique
-// clients that sent messages to caseConverter is printed.
 #include "starLord.h"
 
 int main(int argc, char *argv[]) {
 	
-	// Array to hold IP of each unique client from which a message is received
-	char *ipAddrs[MAXSTRINGLENGTH];
-	int ipCounter = 0;	
-
 	// Ensure that user ran with correct syntax and # of arguments. If not, exit
 	if (argc != 3) {
-		printf("Syntax: ./caseConverter -p <port>\n");
+		printf("Syntax: ./starLord -p <port>\n");
 		exit(1);
 	}
+
+	// declare and initialize variables
+	char *ipAddrs[MAXSTRINGLENGTH];	// array to hold unique client IPs
+	int ipCounter = 0;					// number of unique IPs encountered	
+	bool addMode = false;				// true if client sends with add mode
+	bool viewMode = false;				// true if client sends with view mode
+	char received[BUFSIZE];
+	char *buffer;
+	char *hostName;
+	char *msgData;
+	char *dataToAdd;
+	char *msgToSend_header;
+	char *msgToSend_body;
+	char *msgToSend_entire;
+	bool allowHeaderNeeded = false;
+	char *httpNumResponse;
+	char *connection, *date, *last_mod, *content_len, *content_type, *server;
+	time_t t = time(NULL);
+	struct tm tm = *localtime(&t);
+
+	// Allocate memory space for strings
+	buffer = malloc(BUFSIZE * 1000);
+	httpNumResponse = malloc(sizeof("HTTP 40X ERROR "));
+	connection = malloc(sizeof("Connection: close\n"));
+	date = malloc(sizeof("Date: --- ::\n") + sizeof(tm));
+	last_mod = malloc(sizeof("Last Modified: --- ::\n") + sizeof(tm));
+	content_len = malloc(sizeof("Content-Length: \n") + sizeof(int));
+	content_type = malloc(sizeof("Content-Type: text/plain\n"));
+	server = malloc(sizeof("Server: Group8/1.0\n"));
 
 	// Parse command line and initialize variables
 	in_port_t servPort;
@@ -28,24 +46,16 @@ int main(int argc, char *argv[]) {
 				servPort = atoi(optarg);
 				break;
 			case '?':
-				if (optopt == 'c')
-					fprintf (stderr, "Option -%c needs an argument.\n", optopt);
-				else if (isprint (optopt))
-					fprintf (stderr, "Unknown option `-%c'.\n", optopt);
-				else
-					fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
-				return 1;
+				exitWithMsg("flags", "Only acceptable flag is -p.");	
 			default:
-				abort ();
+				exit(1);
 		}
 	}
 
 	// Create socket for incoming connections
 	int servSock;
-	if ((servSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-		perror("socket() failed");
-		exit(1);
-	}
+	if ((servSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+		exitWithMsg("socket()", "it failed!");
   
 	// Construct local address structure
 	struct sockaddr_in servAddr;                  // Local address
@@ -55,52 +65,42 @@ int main(int argc, char *argv[]) {
 	servAddr.sin_port = htons(servPort);          // Local port
 
 	// Bind to the local address
-	if (bind(servSock, (struct sockaddr*) &servAddr, sizeof(servAddr)) < 0) {
-		perror("bind() failed");
-		exit(1);
-	}
+	if (bind(servSock, (struct sockaddr*) &servAddr, sizeof(servAddr)) < 0)
+		exitWithMsg("bind()", "it failed!");
 
 	// Mark the socket so it will listen for incoming connections
-	if (listen(servSock, MAXPENDING) < 0) {
-		perror("listen() failed");
-		exit(1);
-	}
+	if (listen(servSock, MAXPENDING) < 0)
+		exitWithMsg("listen()", "it failed!");	
   
 	// Print number of messages and the unique client ips after CTRL+C
 	int msgs_recvd = 0;
 	void ctrlHandle(int sig) {
-		char c;
+		int i;
 		signal(sig, SIG_IGN);
 		printf("\n%d	", msgs_recvd-1);
-		int i;		
-		for(i = 0; i < ipCounter; i++){
+		for(i = 0; i < ipCounter; i++)
 			printf("%s, ",ipAddrs[i]);
-		}
 		printf("\n");
 		exit(1);
 	}
 	signal(SIGINT, ctrlHandle);
 
-	// Actual receiving/inverting/sending portion of program
-	while(true) { // Run forever (until CTRL+C)
+	// Actual receiving/sending portion of program. Run until CTRL+C
+	while(true) { 
 		msgs_recvd++;
-
+		memset(buffer, 0, sizeof(buffer));
 		// Declare and initialize variable used for receiving/inverting/sending
-		int unique = 0, x, y; // Unique IP checker and variables for loops
+		int x, unique; // Unique IP checker and variable for loop
 		struct sockaddr_in clntAddr; // Client address structure
 		socklen_t clntAddrLen = sizeof(clntAddr); // Length of client address
-		char buffer[BUFSIZE], inverted[BUFSIZE]; // Strings to hold messages
 	
 		// Clear strings used for receiving and storing inverted message
-		bzero(inverted, sizeof(inverted));
-		bzero(buffer, sizeof(buffer));
+		bzero(received, sizeof(received));
     
 		// Wait for a client to connect
 		int clntSock = accept(servSock,(struct sockaddr*)&clntAddr, &clntAddrLen);
-		if (clntSock < 0) {
-			perror("accept() failed");
-			exit(1);
-		}
+		if (clntSock < 0)
+			exitWithMsg("accept()", "it failed!");	
 
 		// clntSock is connected to a client
 		char clntName[INET_ADDRSTRLEN]; // String to contain client address
@@ -110,53 +110,153 @@ int main(int argc, char *argv[]) {
 		else
 			printf("Unable to get client address\n");
     
-		// Save first client's IP in ipAddrs
-		if (ipCounter == 0) {			
-			ipAddrs[ipCounter] = clntName;
-			ipCounter++;
-		}
+		// Save unique client IPs in ipAddrs
+		if (ipCounter == 0)
+			ipAddrs[ipCounter++] = clntName;
 		
-		// Check if new client's IP is unique. If unique, save in ipAddrs
 		else {
-			for(x = 0; x < ipCounter; x++) {
+			for(x=0; x<ipCounter; x++) {
 				if (strcmp(ipAddrs[x], clntName) == 0)
-					unique = 1;
-				else
 					unique = 0;
+				else
+					unique = 1;
 	   	}
-			if(unique == 0) {
-				ipAddrs[ipCounter] = clntName;
-				ipCounter++;
-			}
-		}	
+
+			if(unique)
+				ipAddrs[ipCounter++] = clntName;
+		}
 	
 		// Receive message from client
-		ssize_t numBytesRcvd = recv(clntSock, buffer, BUFSIZE, 0);
-		if (numBytesRcvd < 0) {
-			perror("recv() failed");
-			exit(1);
+		ssize_t numBytesRcvd = recv(clntSock, received, BUFSIZE, 0);
+		if (numBytesRcvd < 0)
+			exitWithMsg("recv()", "it failed!");
+	
+		// Parse received message
+		sprintf(httpNumResponse, "null");
+		char *token = strtok(received, " ");
+		if (strcmp(token, "GET") != 0) {
+			allowHeaderNeeded = true;
+			sprintf(httpNumResponse, "HTTP 405 ERROR; ONLY 'GET' METHOD ALLOWED");
+		}
+		else {
+			addMode = false;
+			viewMode = false;
+			
+			token = strtok(NULL, " ");
+			if (strstr(token, "/add?") != NULL) {
+				addMode = true;
+				msgData = malloc(sizeof(token) - sizeof("/add?"));
+				char *temp = strstr(token, "/add?");
+				strcpy(msgData, temp+5);
+			}
+			else if (strstr(token, "/view?") != NULL)	{
+				viewMode = true;
+				msgData = malloc(sizeof("\0"));
+				sprintf(msgData, " ");
+			}	
+			else  {
+				sprintf(httpNumResponse, "HTTP 404 ERROR; ACTION NOT FOUND");
+			}
+
+			token = strtok(NULL, "\n");
+			if (strcmp(token, "HTTP/1.1") != 0)
+				sprintf(httpNumResponse, "HTTP 400 ERROR; BAD REQUEST");
+
+			token = strtok(NULL, " ");
+			if (strcmp(token, "Host:") != 0)
+				sprintf(httpNumResponse, "HTTP 400 ERROR; BAD REQUEST");
+			else {
+				if (addMode) {
+					token = strtok(NULL, " ");
+					hostName = malloc(sizeof(token));
+					sprintf(hostName, "%s", token);
+					dataToAdd=malloc(sizeof(hostName)+sizeof(msgData)+2);
+					sprintf(dataToAdd, "%s", hostName);
+					strcat(dataToAdd, " ");
+					strcat(dataToAdd, msgData);
+					strcat(dataToAdd, "\n");
+					printf("buffer is %s\n", buffer);
+					char *oldbuffer = malloc(sizeof(buffer));
+					memset(oldbuffer, 0, sizeof(oldbuffer));
+					sprintf(oldbuffer, "%s", buffer);
+					printf("old buffer is %s\n", oldbuffer);
+					buffer = malloc (sizeof(buffer) + sizeof(dataToAdd));
+					printf("buffer after malloc is %s\n", buffer);
+					sprintf(buffer, "%s", oldbuffer);
+					printf("buffer after strcopy oldbuffer into buffer is %s\n", buffer);
+					strcat(buffer, dataToAdd);
+					printf("buffer after strcat dataToAdd into buffer is %s\n", buffer);
+					sprintf(last_mod, " ");
+					time_t last_mod_t = time(NULL);	
+					struct tm lmt = *localtime(&t);
+					memset(last_mod, 0, sizeof(last_mod));
+					sprintf(last_mod, "Last Modified: %d-%d-%d %d:%d:%d\n",
+												lmt.tm_mon+1, lmt.tm_mday, lmt.tm_year,
+												lmt.tm_hour, lmt.tm_min, lmt.tm_sec);
+				}
+			}
+
+			// if message was okay, http response is OK
+			if (strcmp(httpNumResponse, "null") == 0) {
+				sprintf(httpNumResponse, "HTTP OK 200");
+			}
+
+			// fill header strings with appropraite content
+			sprintf(connection, "Connection: close\n");	
+			time_t date_t = time(NULL);
+			struct tm dt = *localtime(&t);
+			sprintf(date, "Date: %d-%d-%d %d:%d:%d\n", 
+										dt.tm_mon+1, dt.tm_mday, dt.tm_year,
+										dt.tm_hour, dt.tm_min, dt.tm_sec);
+
+			// fill body of message to be sent with appropriate content
+			if (viewMode) {
+				msgToSend_body = malloc(sizeof("Local Buffer:\n\n")+sizeof(buffer));
+				memset(msgToSend_body, 0, sizeof(msgToSend_body));
+				sprintf(msgToSend_body, "Local Buffer:\n%s\n", buffer);
+			}
+			else {
+				msgToSend_body = malloc(sizeof("Msg Added:\n\nLocal Buffer:\n\n") +
+												sizeof(dataToAdd) + sizeof(buffer));
+				memset(msgToSend_body, 0, sizeof(msgToSend_body));
+				sprintf(msgToSend_body, "Msg Added:\n%s\n", dataToAdd);
+				strcat(msgToSend_body, "Local Buffer:\n");
+				strcat(msgToSend_body, buffer);
+				strcat(msgToSend_body, "\n");
+			}
+
+			// fill remaining header strings with appropriate content
+			int content_length = strlen(msgToSend_body);
+			sprintf(content_len, "Content-Length: %i\n", content_length);
+			sprintf(content_type, "Content-Type: text/plain\n");
+			sprintf(server, "Server: Group8/1.0\n");
 		}
 
-		// Iterate through received message in buffer char array, 
-		// swap case of each letter, and store new message in inverted char array 
-		for (y=0; y<numBytesRcvd; y++) {
-			if ((int)buffer[y] >= 65 && (int)buffer[y] <= 90)
-				inverted[y] = buffer[y]+32;
-			else if ((int)buffer[y] >= 97 && (int)buffer[y] <= 122)
-				inverted[y] = buffer[y]-32;
-			else
-				inverted[y] = buffer[y];
-		}
- 
+		// Create message to send back
+		msgToSend_entire = malloc(sizeof("Allow: GET") + sizeof(connection) +
+											sizeof(date) + sizeof(last_mod) +
+											sizeof(content_len) + sizeof(content_type) +
+											sizeof(server) + sizeof(msgToSend_body));
+		
+		sprintf(msgToSend_entire,"%s", connection);
+		if (allowHeaderNeeded) strcat(msgToSend_entire, "Allow: GET");
+		strcat(msgToSend_entire, date);
+		strcat(msgToSend_entire, last_mod);
+		strcat(msgToSend_entire, content_len);
+		strcat(msgToSend_entire, content_type);
+		strcat(msgToSend_entire, server);
+		strcat(msgToSend_entire, "\n");
+		strcat(msgToSend_entire, msgToSend_body);
+		strcat(msgToSend_entire, "\n");
+		printf("%s\n", msgToSend_entire);
+
+/*
 		// Send inverted message back to client
-		ssize_t numBytesSent = send(clntSock, inverted, numBytesRcvd, 0);
-		if (numBytesSent < 0) {
-			perror("send() failed");
-			exit(1);
-		}
-		else if (numBytesSent != numBytesRcvd) {
-			printf("send(): sent unexpected number of bytes\n");
-			exit(1);
-		}
+		ssize_t numBytesSent = send(clntSock, msgToSend, numBytesRcvd, 0);
+		if (numBytesSent < 0)
+			exitWithMsg("send()", "it failed!");
+		else if (numBytesSent != numBytesRcvd)
+			exitWithMsg("send()", "unexpected number of bytes!");
+*/
 	}	
 }

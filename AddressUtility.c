@@ -57,3 +57,8 @@ bool SockAddrsEqual(const struct sockaddr *addr1, const struct sockaddr *addr2) 
     return false;
 }
 
+// print an error message to stdout and exit execution
+void exitWithMsg(const char *category, const char *error) {
+	printf("\nERROR with %s!\n%s\nTry again.\n\n", category, error);
+	exit(1);
+}
