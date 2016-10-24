@@ -23,6 +23,7 @@ int main(int argc, char *argv[]) {
 	char *msgToSend_entire;
 	bool allowHeaderNeeded = false;
 	char *httpNumResponse;
+	int content_length;
 	char *connection, *date, *last_mod, *content_len, *content_type, *server;
 	time_t last_mod_t, date_t;
 	struct tm lmt, dt;
@@ -146,7 +147,15 @@ int main(int argc, char *argv[]) {
 				addMode = true;
 				msgData = malloc(strlen(token) - strlen("/add?"));
 				char *temp = strstr(token, "/add?");
-				strcpy(msgData, temp+5);
+				temp+=5;
+				strcpy(msgData, temp);
+				while (strcmp(temp, "HTTP/1.1\nHost:") != 0) {
+					printf("temp is %s\n", temp);
+					temp = strtok(NULL, " ");
+					strcat(msgData, " ");
+					strcat(msgData, temp);
+				}
+				printf("msgData is %s\n", msgData);
 			}
 			else if (strstr(token, "/view?") != NULL)	{
 				viewMode = true;
@@ -212,7 +221,8 @@ int main(int argc, char *argv[]) {
 			}
 
 			// fill remaining header strings with appropriate content
-			sprintf(content_len,"Content-Length:%li\n", strlen(msgToSend_body)-15);
+			content_length = strlen(msgToSend_body) - 15;
+			sprintf(content_len,"Content-Length: %i\n", content_length);
 			sprintf(content_type, "Content-Type: text/plain\n");
 			sprintf(server, "Server: Group8/1.0\n");
 		}

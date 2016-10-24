@@ -95,6 +95,8 @@ int main(int argc, char *argv[]) {
 	msgToSend = malloc(21 + sizeof(msgWithMode) + sizeof(hostHeader));
 	sprintf(msgToSend, "GET %s HTTP/1.1\nHost: %s", msgWithMode, hostHeader);
 
+
+	printf("msgToSend is %s\n", msgToSend);
 	// Send the message to the server
 	size_t messageLen = strlen(msgToSend);
 	ssize_t numBytes = send(sock, msgToSend, messageLen, 0);
