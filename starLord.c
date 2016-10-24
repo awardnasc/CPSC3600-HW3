@@ -29,13 +29,13 @@ int main(int argc, char *argv[]) {
 
 	// Allocate memory space for strings
 	buffer = malloc(BUFSIZE * 1000);
-	httpNumResponse = malloc(sizeof("HTTP 40X ERROR "));
-	connection = malloc(sizeof("Connection: close\n"));
-	date = malloc(sizeof("Date: --- ::\n") + sizeof(tm));
-	last_mod = malloc(sizeof("Last Modified: --- ::\n") + sizeof(tm));
-	content_len = malloc(sizeof("Content-Length: \n") + sizeof(int));
-	content_type = malloc(sizeof("Content-Type: text/plain\n"));
-	server = malloc(sizeof("Server: Group8/1.0\n"));
+	httpNumResponse = malloc(strlen("HTTP 40X ERROR "));
+	connection = malloc(strlen("Connection: close\n"));
+	date = malloc(strlen("Date: --- ::\n") + sizeof(tm));
+	last_mod = malloc(strlen("Last Modified: --- ::\n") + sizeof(tm));
+	content_len = malloc(strlen("Content-Length: \n") + sizeof(int));
+	content_type = malloc(strlen("Content-Type: text/plain\n"));
+	server = malloc(strlen("Server: Group8/1.0\n"));
 
 	// Parse command line and initialize variables
 	in_port_t servPort;
@@ -88,14 +88,14 @@ int main(int argc, char *argv[]) {
 	// Actual receiving/sending portion of program. Run until CTRL+C
 	while(true) { 
 		msgs_recvd++;
-		memset(buffer, 0, sizeof(buffer));
+		memset(buffer, 0, strlen(buffer));
 		// Declare and initialize variable used for receiving/inverting/sending
 		int x, unique; // Unique IP checker and variable for loop
 		struct sockaddr_in clntAddr; // Client address structure
 		socklen_t clntAddrLen = sizeof(clntAddr); // Length of client address
 	
 		// Clear strings used for receiving and storing inverted message
-		bzero(received, sizeof(received));
+		bzero(received, strlen(received));
     
 		// Wait for a client to connect
 		int clntSock = accept(servSock,(struct sockaddr*)&clntAddr, &clntAddrLen);
@@ -105,7 +105,7 @@ int main(int argc, char *argv[]) {
 		// clntSock is connected to a client
 		char clntName[INET_ADDRSTRLEN]; // String to contain client address
 		if (inet_ntop(AF_INET, &clntAddr.sin_addr.s_addr, clntName,
-							sizeof(clntName)) != NULL)
+							strlen(clntName)) != NULL)
 			printf("Handling client %s/%d\n", clntName, ntohs(clntAddr.sin_port));
 		else
 			printf("Unable to get client address\n");
@@ -145,13 +145,13 @@ int main(int argc, char *argv[]) {
 			token = strtok(NULL, " ");
 			if (strstr(token, "/add?") != NULL) {
 				addMode = true;
-				msgData = malloc(sizeof(token) - sizeof("/add?"));
+				msgData = malloc(strlen(token) - strlen("/add?"));
 				char *temp = strstr(token, "/add?");
 				strcpy(msgData, temp+5);
 			}
 			else if (strstr(token, "/view?") != NULL)	{
 				viewMode = true;
-				msgData = malloc(sizeof("\0"));
+				msgData = malloc(strlen("\0"));
 				sprintf(msgData, " ");
 			}	
 			else  {
@@ -168,16 +168,16 @@ int main(int argc, char *argv[]) {
 			else {
 				if (addMode) {
 					token = strtok(NULL, " ");
-					hostName = malloc(sizeof(token));
+					hostName = malloc(strlen(token));
 					sprintf(hostName, "%s", token);
-					dataToAdd=malloc(sizeof(hostName)+sizeof(msgData)+2);
+					dataToAdd=malloc(strlen(hostName)+strlen(msgData)+2);
 					sprintf(dataToAdd, "%s", hostName);
 					strcat(dataToAdd, " ");
 					strcat(dataToAdd, msgData);
 					strcat(dataToAdd, "\n");
 					printf("buffer is %s\n", buffer);
-					char *oldbuffer = malloc(sizeof(buffer));
-					memset(oldbuffer, 0, sizeof(oldbuffer));
+					char *oldbuffer = malloc(strlen(buffer));
+					memset(oldbuffer, 0, strlen(oldbuffer));
 					sprintf(oldbuffer, "%s", buffer);
 					printf("old buffer is %s\n", oldbuffer);
 					buffer = malloc (sizeof(buffer) + sizeof(dataToAdd));
@@ -189,7 +189,7 @@ int main(int argc, char *argv[]) {
 					sprintf(last_mod, " ");
 					time_t last_mod_t = time(NULL);	
 					struct tm lmt = *localtime(&t);
-					memset(last_mod, 0, sizeof(last_mod));
+					memset(last_mod, 0, strlen(last_mod));
 					sprintf(last_mod, "Last Modified: %d-%d-%d %d:%d:%d\n",
 												lmt.tm_mon+1, lmt.tm_mday, lmt.tm_year,
 												lmt.tm_hour, lmt.tm_min, lmt.tm_sec);
@@ -211,14 +211,13 @@ int main(int argc, char *argv[]) {
 
 			// fill body of message to be sent with appropriate content
 			if (viewMode) {
-				msgToSend_body = malloc(sizeof("Local Buffer:\n\n")+sizeof(buffer));
-				memset(msgToSend_body, 0, sizeof(msgToSend_body));
+				msgToSend_body = malloc(strlen("Local Buffer:\n\n")+strlen(buffer));
+				memset(msgToSend_body, 0, strlen(msgToSend_body));
 				sprintf(msgToSend_body, "Local Buffer:\n%s\n", buffer);
 			}
 			else {
-				msgToSend_body = malloc(sizeof("Msg Added:\n\nLocal Buffer:\n\n") +
-												sizeof(dataToAdd) + sizeof(buffer));
-				memset(msgToSend_body, 0, sizeof(msgToSend_body));
+				msgToSend_body = malloc(strlen("Msg Added:\n\nLocal Buffer:\n\n") + strlen(dataToAdd) + strlen(buffer));
+				memset(msgToSend_body, 0, strlen(msgToSend_body));
 				sprintf(msgToSend_body, "Msg Added:\n%s\n", dataToAdd);
 				strcat(msgToSend_body, "Local Buffer:\n");
 				strcat(msgToSend_body, buffer);
@@ -233,10 +232,10 @@ int main(int argc, char *argv[]) {
 		}
 
 		// Create message to send back
-		msgToSend_entire = malloc(sizeof("Allow: GET") + sizeof(connection) +
-											sizeof(date) + sizeof(last_mod) +
-											sizeof(content_len) + sizeof(content_type) +
-											sizeof(server) + sizeof(msgToSend_body));
+		msgToSend_entire = malloc(strlen("Allow: GET") + strlen(connection) +
+											strlen(date) + strlen(last_mod) +
+											strlen(content_len) + strlen(content_type) +
+											strlen(server) + strlen(msgToSend_body));
 		
 		sprintf(msgToSend_entire,"%s", connection);
 		if (allowHeaderNeeded) strcat(msgToSend_entire, "Allow: GET");
