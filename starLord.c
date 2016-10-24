@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
 		socklen_t clntAddrLen = sizeof(clntAddr); // Length of client address
 	
 		// Clear strings used for receiving and storing inverted message
-		bzero(received, strlen(received));
+		memset(&received[0], 0, strlen(received));
     
 		// Wait for a client to connect
 		int clntSock = accept(servSock,(struct sockaddr*)&clntAddr, &clntAddrLen);
@@ -148,12 +148,11 @@ int main(int argc, char *argv[]) {
 				msgData = malloc(strlen(token) - strlen("/add?"));
 				char *temp = strstr(token, "/add?");
 				temp+=5;
-				strcpy(msgData, temp);
 				while (strcmp(temp, "HTTP/1.1\nHost:") != 0) {
 					printf("temp is %s\n", temp);
-					temp = strtok(NULL, " ");
 					strcat(msgData, " ");
 					strcat(msgData, temp);
+					temp = strtok(NULL, " ");
 				}
 				printf("msgData is %s\n", msgData);
 			}
@@ -166,6 +165,7 @@ int main(int argc, char *argv[]) {
 				sprintf(httpNumResponse, "HTTP 404 ERROR; ACTION NOT FOUND");
 			}
 
+			if (!viewMode) {
 			token = strtok(NULL, "\n");
 			if (strcmp(token, "HTTP/1.1") != 0)
 				sprintf(httpNumResponse, "HTTP 400 ERROR; BAD REQUEST");
