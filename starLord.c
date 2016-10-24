@@ -24,15 +24,15 @@ int main(int argc, char *argv[]) {
 	bool allowHeaderNeeded = false;
 	char *httpNumResponse;
 	char *connection, *date, *last_mod, *content_len, *content_type, *server;
-	time_t t = time(NULL);
-	struct tm tm = *localtime(&t);
+	time_t last_mod_t, date_t;
+	struct tm lmt, dt;
 
 	// Allocate memory space for strings
-	buffer = malloc(BUFSIZE * 1000);
+	buffer = malloc(10000);
 	httpNumResponse = malloc(strlen("HTTP 40X ERROR "));
-	connection = malloc(strlen("Connection: close\n"));
-	date = malloc(strlen("Date: --- ::\n") + sizeof(tm));
-	last_mod = malloc(strlen("Last Modified: --- ::\n") + sizeof(tm));
+	connection = malloc(sizeof("Connection: close\n"));
+	date = malloc(strlen("Date: --- ::\n") + sizeof(struct tm));
+	last_mod = malloc(strlen("Last Modified: --- ::\n") + sizeof(struct tm));
 	content_len = malloc(strlen("Content-Length: \n") + sizeof(int));
 	content_type = malloc(strlen("Content-Type: text/plain\n"));
 	server = malloc(strlen("Server: Group8/1.0\n"));
@@ -88,7 +88,6 @@ int main(int argc, char *argv[]) {
 	// Actual receiving/sending portion of program. Run until CTRL+C
 	while(true) { 
 		msgs_recvd++;
-		memset(buffer, 0, strlen(buffer));
 		// Declare and initialize variable used for receiving/inverting/sending
 		int x, unique; // Unique IP checker and variable for loop
 		struct sockaddr_in clntAddr; // Client address structure
@@ -105,7 +104,7 @@ int main(int argc, char *argv[]) {
 		// clntSock is connected to a client
 		char clntName[INET_ADDRSTRLEN]; // String to contain client address
 		if (inet_ntop(AF_INET, &clntAddr.sin_addr.s_addr, clntName,
-							strlen(clntName)) != NULL)
+							sizeof(clntName)) != NULL)
 			printf("Handling client %s/%d\n", clntName, ntohs(clntAddr.sin_port));
 		else
 			printf("Unable to get client address\n");
@@ -175,38 +174,26 @@ int main(int argc, char *argv[]) {
 					strcat(dataToAdd, " ");
 					strcat(dataToAdd, msgData);
 					strcat(dataToAdd, "\n");
-					printf("buffer is %s\n", buffer);
-					char *oldbuffer = malloc(strlen(buffer));
-					memset(oldbuffer, 0, strlen(oldbuffer));
-					sprintf(oldbuffer, "%s", buffer);
-					printf("old buffer is %s\n", oldbuffer);
-					buffer = malloc (sizeof(buffer) + sizeof(dataToAdd));
-					printf("buffer after malloc is %s\n", buffer);
-					sprintf(buffer, "%s", oldbuffer);
-					printf("buffer after strcopy oldbuffer into buffer is %s\n", buffer);
-					strcat(buffer, dataToAdd);
-					printf("buffer after strcat dataToAdd into buffer is %s\n", buffer);
-					sprintf(last_mod, " ");
-					time_t last_mod_t = time(NULL);	
-					struct tm lmt = *localtime(&t);
-					memset(last_mod, 0, strlen(last_mod));
+					if (msgs_recvd == 1) sprintf(buffer, "%s", dataToAdd);
+					else strcat(buffer, dataToAdd);
+					last_mod_t = time(NULL);	
+					lmt = *localtime(&last_mod_t);
 					sprintf(last_mod, "Last Modified: %d-%d-%d %d:%d:%d\n",
-												lmt.tm_mon+1, lmt.tm_mday, lmt.tm_year,
+												lmt.tm_mon+1, lmt.tm_mday, lmt.tm_year-100,
 												lmt.tm_hour, lmt.tm_min, lmt.tm_sec);
 				}
 			}
 
 			// if message was okay, http response is OK
-			if (strcmp(httpNumResponse, "null") == 0) {
+			if (strcmp(httpNumResponse, "null") == 0) 
 				sprintf(httpNumResponse, "HTTP OK 200");
-			}
 
 			// fill header strings with appropraite content
 			sprintf(connection, "Connection: close\n");	
-			time_t date_t = time(NULL);
-			struct tm dt = *localtime(&t);
+			date_t = time(NULL);
+			dt = *localtime(&date_t);
 			sprintf(date, "Date: %d-%d-%d %d:%d:%d\n", 
-										dt.tm_mon+1, dt.tm_mday, dt.tm_year,
+										dt.tm_mon+1, dt.tm_mday, dt.tm_year-100,
 										dt.tm_hour, dt.tm_min, dt.tm_sec);
 
 			// fill body of message to be sent with appropriate content
@@ -216,8 +203,8 @@ int main(int argc, char *argv[]) {
 				sprintf(msgToSend_body, "Local Buffer:\n%s\n", buffer);
 			}
 			else {
-				msgToSend_body = malloc(strlen("Msg Added:\n\nLocal Buffer:\n\n") + strlen(dataToAdd) + strlen(buffer));
-				memset(msgToSend_body, 0, strlen(msgToSend_body));
+				msgToSend_body = malloc(strlen("Msg Added:\n\nLocal Buffer:\n\n") 
+												+ strlen(dataToAdd) + strlen(buffer));
 				sprintf(msgToSend_body, "Msg Added:\n%s\n", dataToAdd);
 				strcat(msgToSend_body, "Local Buffer:\n");
 				strcat(msgToSend_body, buffer);
@@ -225,8 +212,7 @@ int main(int argc, char *argv[]) {
 			}
 
 			// fill remaining header strings with appropriate content
-			int content_length = strlen(msgToSend_body);
-			sprintf(content_len, "Content-Length: %i\n", content_length);
+			sprintf(content_len,"Content-Length:%li\n", strlen(msgToSend_body)-15);
 			sprintf(content_type, "Content-Type: text/plain\n");
 			sprintf(server, "Server: Group8/1.0\n");
 		}
