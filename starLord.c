@@ -16,6 +16,7 @@ int main(int argc, char *argv[]) {
 	char received[BUFSIZE];
 	char *buffer;
 	char *hostName;
+	char *temp;
 	char *msgData;
 	char *dataToAdd;
 	char *msgToSend_header;
@@ -146,7 +147,7 @@ int main(int argc, char *argv[]) {
 			if (strstr(token, "/add?") != NULL) {
 				addMode = true;
 				msgData = malloc(strlen(token) - strlen("/add?"));
-				char *temp = strstr(token, "/add?");
+				temp = strstr(token, "/add?");
 				temp+=5;
 				while (strcmp(temp, "HTTP/1.1\nHost:") != 0) {
 					printf("temp is %s\n", temp);
@@ -166,7 +167,11 @@ int main(int argc, char *argv[]) {
 			}
 
 			if (!viewMode) {
-			token = strtok(NULL, "\n");
+				temp = strstr(token, "/add?");
+				token = temp + 5 + strlen(msgData);
+				token = strtok(token, "\n");
+			}
+		
 			if (strcmp(token, "HTTP/1.1") != 0)
 				sprintf(httpNumResponse, "HTTP 400 ERROR; BAD REQUEST");
 
